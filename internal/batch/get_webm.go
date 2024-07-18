@@ -105,10 +105,10 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 		return nil, nil, err
 	}
 
-	err = os.RemoveAll(frames)
-	if err != nil {
-		return nil, nil, err
-	}
+	// err = os.RemoveAll(frames)
+	// if err != nil {
+	// 	return nil, nil, err
+	// }
 
 	return images, events, err
 }

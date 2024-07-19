@@ -117,18 +117,25 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 
 		arr := strings.Split(objectName, "-")
 		contentType := "application/octet-image"
-		for j := 0; j < len(images); j++ {
-			objectName = arr[0] + "-" + arr[1] + "-" + arr[2] + "-" + strconv.Itoa(j+1) + ".jpeg" // 2-3-44-3.jpeg
-			filePath := "frames/" + strconv.Itoa(j+1) + ".jpeg"
 
-			_, err := m.FPutObject(
-				ctx,
-				bucketName,
-				objectName,
-				filePath,
-				minio.PutObjectOptions{ContentType: contentType})
-			if err != nil {
-				log.Println(err)
+		for j, event := range events {
+
+			if j > 0 {
+
+				arr_timestamp := strings.Split(fmt.Sprintf("%v", event), " ")
+
+				objectName = arr[0] + "-" + arr[1] + "-" + arr_timestamp[0][1:] + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
+				filePath := "frames/" + strconv.Itoa(j) + ".jpeg"
+
+				_, err := m.FPutObject(
+					ctx,
+					bucketName,
+					objectName,
+					filePath,
+					minio.PutObjectOptions{ContentType: contentType})
+				if err != nil {
+					log.Println(err)
+				}
 			}
 		}
 

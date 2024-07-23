@@ -76,7 +76,7 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 	}
 
 	ar := strings.Split(fmt.Sprintf("%v", HeaderWebm), "/")
-	webmToFrame(frames, HeaderWebm)
+	saveWebmToFrames(frames, HeaderWebm)
 
 	files, err := os.ReadDir(frames)
 	if err != nil {
@@ -105,15 +105,10 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 		return nil, nil, err
 	}
 
-	// err = os.RemoveAll(frames)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
-
 	return images, events, err
 }
 
-func webmToFrame(frames, path string) {
+func saveWebmToFrames(frames, path string) {
 	c := exec.Command(
 		"ffmpeg", "-i",
 		path,

@@ -179,17 +179,15 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 					log.Println(err)
 				}
 
-				fmt.Println("fileInfo:", fileInfo)
-
 				bodyReader := bytes.NewReader(body)
 
-				url := "http://localhost:3000/info" // TODO
-				req, err := http.NewRequest("Get", url, bodyReader)
+				url := "http://localhost:3000/api_v1/info" // TODO
+				req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 				if err != nil {
 					log.Println(err)
 				}
 
-				req.Header.Set("Content-Type", "application/json")
+				req.Header.Add("Content-Type", "application/json")
 
 				client := http.Client{
 					Timeout: 5 * time.Second,

@@ -21,6 +21,22 @@ type FileCsv struct {
 	Modifiers     string `json:"modifiers"`
 }
 
+type Info struct {
+	Timestamp     string `json:"timestamp"`
+	Process_path  string `json:"process_path"`
+	Title         string `json:"title"`
+	Class_name    string `json:"class_name"`
+	Window_left   string `json:"window_left"`
+	Window_top    string `json:"window_top"`
+	Window_right  string `json:"window_right"`
+	Window_bottom string `json:"window_bottom"`
+	Event         string `json:"event"`
+	Mouse_x_pos   string `json:"mouse_x_pos"`
+	Mouse_y_pos   string `json:"mouse_y_pos"`
+	Modifiers     string `json:"modifiers"`
+	FrameName     string `json:"frameName"`
+}
+
 func GetEvetsCsv(pathCsv string) ([]FileCsv, error) {
 	file, err := os.Open(pathCsv)
 	if err != nil {

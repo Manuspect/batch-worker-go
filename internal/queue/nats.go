@@ -108,103 +108,16 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			return
 		}
 
-		images, events, err := batch.GetWebmCsv(filename)
+		events, err := batch.GetWebmCsv(filename)
 		if err != nil {
 			fmt.Println("GetWebmCsv err:", err)
-		}
-		if images != nil {
-			fmt.Println("images: OK")
-		}
-		if events != nil {
-			fmt.Println("events: OK")
+			return
 		}
 
-		type Info struct {
-			Timestamp     string `json:"timestamp"`
-			Process_path  string `json:"process_path"`
-			Title         string `json:"title"`
-			Class_name    string `json:"class_name"`
-			Window_left   string `json:"window_left"`
-			Window_top    string `json:"window_top"`
-			Window_right  string `json:"window_right"`
-			Window_bottom string `json:"window_bottom"`
-			Event         string `json:"event"`
-			Mouse_x_pos   string `json:"mouse_x_pos"`
-			Mouse_y_pos   string `json:"mouse_y_pos"`
-			Modifiers     string `json:"modifiers"`
-			FrameName     string `json:"frameName"`
-		}
-
-		arr := strings.Split(objectName, "-")
-		contentType := "application/octet-image"
-		var frame_name string
-
-		for j, event := range events {
-
-			if j > 0 {
-
-				arr_csv := strings.Split(fmt.Sprintf("%v", event), "|")
-
-				frame_name = arr[0] + "-" + arr[1] + "-" + arr_csv[0][1:] + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
-				filePath := "frames/" + strconv.Itoa(j) + ".jpeg"
-
-				_, err := m.FPutObject(
-					ctx,
-					bucketName,
-					frame_name,
-					filePath,
-					minio.PutObjectOptions{ContentType: contentType})
-				if err != nil {
-					log.Println(err)
-				}
-
-				fileInfo := Info{
-					Timestamp:     arr_csv[0][1:],
-					Process_path:  arr_csv[1],
-					Title:         arr_csv[2],
-					Class_name:    arr_csv[3],
-					Window_left:   arr_csv[4],
-					Window_top:    arr_csv[5],
-					Window_right:  arr_csv[6],
-					Window_bottom: arr_csv[7],
-					Event:         arr_csv[8],
-					Mouse_x_pos:   arr_csv[9],
-					Mouse_y_pos:   arr_csv[10],
-					Modifiers:     arr_csv[11][0 : len(arr_csv[11])-1],
-					FrameName:     frame_name,
-				}
-
-				body, err := json.Marshal(fileInfo)
-				if err != nil {
-					log.Println(err)
-				}
-
-				bodyReader := bytes.NewReader(body)
-
-				url := "http://localhost:3000/api_v1/info" // TODO
-				req, err := http.NewRequest(http.MethodPost, url, bodyReader)
-				if err != nil {
-					log.Println(err)
-				}
-
-				req.Header.Add("Content-Type", "application/json")
-
-				client := http.Client{
-					Timeout: 5 * time.Second,
-				}
-
-				resp, err := client.Do(req)
-				if err != nil {
-					log.Println(err)
-				}
-
-				b, err := io.ReadAll(resp.Body)
-				if err != nil {
-					log.Println(err)
-				}
-				fmt.Println(string(b))
-
-			}
+		err = sendJpegCsvFiles(m, objectName, bucketName, events)
+		if err != nil {
+			fmt.Println("sendJpegCsvFiles err:", err)
+			return
 		}
 
 		err = os.RemoveAll("frames")
@@ -219,6 +132,81 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 
 		msg.Ack()
 	}
+}
+
+func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []batch.FileCsv) error {
+	ctx := context.Background()
+	arr := strings.Split(objectName, "-")
+	contentType := "application/octet-image"
+
+	var frame_name string
+	for j, event := range events {
+
+		if j > 0 {
+
+			arr_csv := strings.Split(fmt.Sprintf("%v", event), "|")
+
+			frame_name = arr[0] + "-" + arr[1] + "-" + arr_csv[0][1:] + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
+			filePath := "frames/" + strconv.Itoa(j) + ".jpeg"
+
+			_, err := m.FPutObject(
+				ctx,
+				bucketName,
+				frame_name,
+				filePath,
+				minio.PutObjectOptions{ContentType: contentType})
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+
+			fileInfo := batch.Info{
+				Timestamp:     arr_csv[0][1:],
+				Process_path:  arr_csv[1],
+				Title:         arr_csv[2],
+				Class_name:    arr_csv[3],
+				Window_left:   arr_csv[4],
+				Window_top:    arr_csv[5],
+				Window_right:  arr_csv[6],
+				Window_bottom: arr_csv[7],
+				Event:         arr_csv[8],
+				Mouse_x_pos:   arr_csv[9],
+				Mouse_y_pos:   arr_csv[10],
+				Modifiers:     arr_csv[11][0 : len(arr_csv[11])-1],
+				FrameName:     frame_name,
+			}
+
+			body, err := json.Marshal(fileInfo)
+			if err != nil {
+				return err
+			}
+
+			bodyReader := bytes.NewReader(body)
+			url := "http://localhost:3000/api_v1/info" // TODO
+			req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+			if err != nil {
+				return err
+			}
+
+			req.Header.Add("Content-Type", "application/json")
+			client := http.Client{
+				Timeout: 5 * time.Second,
+			}
+
+			resp, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+
+			b, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(b))
+		}
+	}
+
+	return nil
 }
 
 // 0. Получить где бетч из очереди

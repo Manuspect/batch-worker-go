@@ -4,8 +4,6 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"fmt"
-	"image"
-	"image/jpeg"
 	"io"
 	"log"
 	"os"
@@ -13,7 +11,7 @@ import (
 	"strings"
 )
 
-func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
+func GetWebmCsv(pathGzipStream string) ([]FileCsv, error) {
 
 	gzipStream, err := os.Open(pathGzipStream)
 	if err != nil {
@@ -21,7 +19,7 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 	}
 	uncompressedStream, err := gzip.NewReader(gzipStream)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	tarReader := tar.NewReader(uncompressedStream)
@@ -36,21 +34,21 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 		}
 
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		switch header.Typeflag {
 		case tar.TypeDir:
 			if err := os.Mkdir(header.Name, 0755); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		case tar.TypeReg:
 			outFile, err := os.Create(header.Name)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			outFile.Close()
 
@@ -72,40 +70,23 @@ func GetWebmCsv(pathGzipStream string) ([]image.Image, []FileCsv, error) {
 	frames := "frames"
 	err = os.MkdirAll(frames, 0755)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	ar := strings.Split(fmt.Sprintf("%v", HeaderWebm), "/")
 	saveWebmToFrames(frames, HeaderWebm)
 
-	files, err := os.ReadDir(frames)
-	if err != nil {
-		return nil, nil, err
-	}
-	var images []image.Image
-	for j, file := range files {
-		if !file.IsDir() {
-			image, err := loadFrames(fmt.Sprintf("%s/%d.jpeg", frames, j+1))
-			if err != nil {
-				return nil, nil, err
-			}
-
-			images = append(images, image)
-			fmt.Println(j+1, fmt.Sprintf("%s/%d.jpeg", frames, j+1))
-		}
-	}
-
 	events, err := GetEvetsCsv(PathCsv)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	err = os.RemoveAll(ar[0])
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return images, events, err
+	return events, err
 }
 
 func saveWebmToFrames(frames, path string) {
@@ -116,21 +97,4 @@ func saveWebmToFrames(frames, path string) {
 	)
 	c.Stderr = os.Stderr
 	c.Run()
-}
-
-func loadFrames(path string) (image.Image, error) {
-	existingImageFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer existingImageFile.Close()
-
-	existingImageFile.Seek(0, 0)
-
-	loadedImage, err := jpeg.Decode(existingImageFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return loadedImage, nil
 }

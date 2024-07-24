@@ -34,7 +34,7 @@ type Info struct {
 	Mouse_x_pos   string `json:"mouse_x_pos"`
 	Mouse_y_pos   string `json:"mouse_y_pos"`
 	Modifiers     string `json:"modifiers"`
-	FrameName     string `json:"frameName"`
+	FilePath      string `json:"filePath"`
 }
 
 func GetEvetsCsv(pathCsv string) ([]FileCsv, error) {
@@ -84,17 +84,17 @@ func GetEvetsCsv(pathCsv string) ([]FileCsv, error) {
 		}
 
 		events = append(events, FileCsv{
-			Timestamp:     lineArr[0] + "|",
-			Process_path:  lineArr[1] + "|",
-			Title:         lineArr[2] + "|",
-			Class_name:    lineArr[3] + "|",
-			Window_left:   lineArr[4] + "|",
-			Window_top:    lineArr[5] + "|",
-			Window_right:  lineArr[6] + "|",
-			Window_bottom: lineArr[7] + "|",
-			Event:         lineArr[8] + "|",
-			Mouse_x_pos:   lineArr[9] + "|",
-			Mouse_y_pos:   lineArr[10] + "|",
+			Timestamp:     lineArr[0],
+			Process_path:  lineArr[1],
+			Title:         lineArr[2],
+			Class_name:    lineArr[3],
+			Window_left:   lineArr[4],
+			Window_top:    lineArr[5],
+			Window_right:  lineArr[6],
+			Window_bottom: lineArr[7],
+			Event:         lineArr[8],
+			Mouse_x_pos:   lineArr[9],
+			Mouse_y_pos:   lineArr[10],
 			Modifiers:     lineArr[11],
 		})
 

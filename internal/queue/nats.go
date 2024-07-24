@@ -139,21 +139,19 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 	arr := strings.Split(objectName, "-")
 	contentType := "application/octet-image"
 
-	var frame_name string
+	var filePath string
 	for j, event := range events {
 
 		if j > 0 {
 
-			arr_csv := strings.Split(fmt.Sprintf("%v", event), "|")
-
-			frame_name = arr[0] + "-" + arr[1] + "-" + arr_csv[0][1:] + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
-			filePath := "frames/" + strconv.Itoa(j) + ".jpeg"
+			filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
+			filePathJpeg := "frames/" + strconv.Itoa(j) + ".jpeg"
 
 			_, err := m.FPutObject(
 				ctx,
 				bucketName,
-				frame_name,
 				filePath,
+				filePathJpeg,
 				minio.PutObjectOptions{ContentType: contentType})
 			if err != nil {
 				log.Println(err)
@@ -161,19 +159,19 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 			}
 
 			fileInfo := batch.Info{
-				Timestamp:     arr_csv[0][1:],
-				Process_path:  arr_csv[1],
-				Title:         arr_csv[2],
-				Class_name:    arr_csv[3],
-				Window_left:   arr_csv[4],
-				Window_top:    arr_csv[5],
-				Window_right:  arr_csv[6],
-				Window_bottom: arr_csv[7],
-				Event:         arr_csv[8],
-				Mouse_x_pos:   arr_csv[9],
-				Mouse_y_pos:   arr_csv[10],
-				Modifiers:     arr_csv[11][0 : len(arr_csv[11])-1],
-				FrameName:     frame_name,
+				Timestamp:     event.Timestamp,
+				Process_path:  event.Process_path,
+				Title:         event.Title,
+				Class_name:    event.Class_name,
+				Window_left:   event.Window_left,
+				Window_top:    event.Window_top,
+				Window_right:  event.Window_right,
+				Window_bottom: event.Window_bottom,
+				Event:         event.Event,
+				Mouse_x_pos:   event.Mouse_x_pos,
+				Mouse_y_pos:   event.Mouse_y_pos,
+				Modifiers:     event.Modifiers,
+				FilePath:      filePath,
 			}
 
 			body, err := json.Marshal(fileInfo)
@@ -182,7 +180,7 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 			}
 
 			bodyReader := bytes.NewReader(body)
-			url := "http://localhost:3000/api_v1/info" // TODO
+			url := "http://localhost:3000/api_v1/info"
 			req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 			if err != nil {
 				return err

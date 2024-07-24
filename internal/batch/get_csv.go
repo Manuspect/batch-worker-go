@@ -2,6 +2,7 @@ package batch
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -50,37 +51,10 @@ func GetEvetsCsv(pathCsv string) ([]FileCsv, error) {
 	for i := 0; scanner.Scan(); i++ {
 		line := scanner.Text()
 
-		lineArr2 := strings.Split(line, ",")
-		var lineArr = [12]string{}
+		lineArr := strings.Split(line, ",")
 
-		if len(lineArr2) == 12 {
-			lineArr[0] = lineArr2[0]
-			lineArr[1] = lineArr2[1]
-			lineArr[2] = lineArr2[2]
-			lineArr[3] = lineArr2[3]
-			lineArr[4] = lineArr2[4]
-			lineArr[5] = lineArr2[5]
-			lineArr[6] = lineArr2[6]
-			lineArr[7] = lineArr2[7]
-			lineArr[8] = lineArr2[8]
-			lineArr[9] = lineArr2[9]
-			lineArr[10] = lineArr2[10]
-			lineArr[11] = lineArr2[11]
-		}
-
-		if len(lineArr2) == 13 {
-			lineArr[0] = lineArr2[0]
-			lineArr[1] = lineArr2[1]
-			lineArr[2] = lineArr2[2]
-			lineArr[3] = lineArr2[3]
-			lineArr[4] = lineArr2[4]
-			lineArr[5] = lineArr2[5]
-			lineArr[6] = lineArr2[6]
-			lineArr[7] = lineArr2[7]
-			lineArr[8] = lineArr2[8]
-			lineArr[9] = lineArr2[9]
-			lineArr[10] = lineArr2[10]
-			lineArr[11] = lineArr2[11] + ", " + lineArr2[12]
+		if len(lineArr) != 12 {
+			return nil, fmt.Errorf("сan't parse string: %s", line)
 		}
 
 		events = append(events, FileCsv{

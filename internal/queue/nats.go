@@ -76,26 +76,22 @@ func CreateFileComsumer(js jetstream.JetStream) (jetstream.Consumer, error) {
 	return consumer, nil
 }
 
+type q_msg struct {
+	ObjectName string `json:"objectName"`
+	BucketName string `json:"bucketName"`
+}
+
 func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstream.Msg) {
 	return func(msg jetstream.Msg) {
-		fmt.Println(string(msg.Data()))
-		// msg.Ack()
-
-		type q_msg struct {
-			ObjectName string `json:"objectName"`
-			BucketName string `json:"bucketName"`
-		}
 
 		var q *q_msg
 		json.Unmarshal(msg.Data(), &q)
 
-		objectName := q.ObjectName
-
+		ctx := context.Background()
 		bucketName := q.BucketName
-
+		objectName := q.ObjectName
 		filename := fmt.Sprintf("./%s", objectName)
 
-		ctx := context.Background()
 		err := m.FGetObject(
 			ctx,
 			bucketName,
@@ -106,6 +102,11 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 		if err != nil {
 			fmt.Println(err)
 			return
+		}
+
+		err = os.RemoveAll("frames")
+		if err != nil {
+			log.Println(err)
 		}
 
 		events, err := batch.GetWebmCsv(filename)
@@ -136,72 +137,68 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 
 func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []batch.FileCsv) error {
 	ctx := context.Background()
-	arr := strings.Split(objectName, "-")
 	contentType := "application/octet-image"
 
+	arr := strings.Split(objectName, "-")
 	var filePath string
-	for j, event := range events {
+	j := 3
+	event := events[j]
 
-		if j > 0 {
+	filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
+	filePathJpeg := "frames/" + strconv.Itoa(j) + ".jpeg"
 
-			filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
-			filePathJpeg := "frames/" + strconv.Itoa(j) + ".jpeg"
+	_, err := m.FPutObject(
+		ctx,
+		bucketName,
+		filePath,
+		filePathJpeg,
+		minio.PutObjectOptions{ContentType: contentType})
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 
-			_, err := m.FPutObject(
-				ctx,
-				bucketName,
-				filePath,
-				filePathJpeg,
-				minio.PutObjectOptions{ContentType: contentType})
-			if err != nil {
-				log.Println(err)
-				return err
-			}
+	fileInfo := batch.Info{
+		Timestamp:     event.Timestamp,
+		Process_path:  event.Process_path,
+		Title:         event.Title,
+		Class_name:    event.Class_name,
+		Window_left:   event.Window_left,
+		Window_top:    event.Window_top,
+		Window_right:  event.Window_right,
+		Window_bottom: event.Window_bottom,
+		Event:         event.Event,
+		Mouse_x_pos:   event.Mouse_x_pos,
+		Mouse_y_pos:   event.Mouse_y_pos,
+		Modifiers:     event.Modifiers,
+		FilePath:      filePath,
+	}
 
-			fileInfo := batch.Info{
-				Timestamp:     event.Timestamp,
-				Process_path:  event.Process_path,
-				Title:         event.Title,
-				Class_name:    event.Class_name,
-				Window_left:   event.Window_left,
-				Window_top:    event.Window_top,
-				Window_right:  event.Window_right,
-				Window_bottom: event.Window_bottom,
-				Event:         event.Event,
-				Mouse_x_pos:   event.Mouse_x_pos,
-				Mouse_y_pos:   event.Mouse_y_pos,
-				Modifiers:     event.Modifiers,
-				FilePath:      filePath,
-			}
+	body, err := json.Marshal(fileInfo)
+	if err != nil {
+		return err
+	}
 
-			body, err := json.Marshal(fileInfo)
-			if err != nil {
-				return err
-			}
+	bodyReader := bytes.NewReader(body)
+	url := os.Getenv("URL")
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+	if err != nil {
+		return err
+	}
 
-			bodyReader := bytes.NewReader(body)
-			url := "http://localhost:3000/api_v1/info"
-			req, err := http.NewRequest(http.MethodPost, url, bodyReader)
-			if err != nil {
-				return err
-			}
+	req.Header.Add("Content-Type", "application/json")
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
 
-			req.Header.Add("Content-Type", "application/json")
-			client := http.Client{
-				Timeout: 5 * time.Second,
-			}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
 
-			resp, err := client.Do(req)
-			if err != nil {
-				return err
-			}
-
-			b, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return err
-			}
-			fmt.Println(string(b))
-		}
+	_, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return err
 	}
 
 	return nil

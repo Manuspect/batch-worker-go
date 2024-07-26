@@ -22,11 +22,11 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 
 		if x, ok := r.(*os.File); ok {
 			if fw, err = w.CreateFormFile(key, x.Name()); err != nil {
-				return
+				return err
 			}
 		} else {
 			if fw, err = w.CreateFormField(key); err != nil {
-				return
+				return err
 			}
 		}
 		if _, err = io.Copy(fw, r); err != nil {
@@ -41,7 +41,7 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
-		return
+		return err
 	}
 	req.Header.Add("Content-Type", w.FormDataContentType())
 	fmt.Println(body)
@@ -51,12 +51,13 @@ func Upload(url string, values map[string]io.Reader) (err error) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return
+		return err
 	}
 
 	if res.StatusCode != http.StatusOK {
 		err = fmt.Errorf("bad status: %s", res.Status)
-		fmt.Println("============================")
+		return err
 	}
-	return
+
+	return nil
 }

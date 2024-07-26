@@ -34,7 +34,6 @@ func main() {
 	}
 
 	cc, err := bc.Consume(
-		// Debili hodiyt suda
 		nats.CreateConsumerHandler(minio_client, fc),
 		jetstream.ConsumeErrHandler(
 			func(consumeCtx jetstream.ConsumeContext, err error) {

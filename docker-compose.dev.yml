@@ -1,0 +1,17 @@
+networks:
+  app-network:
+    name: workspace_default
+    external: true
+
+services:
+  collector-go:
+    env_file:
+      - ../.env
+    image: debian:12-slim
+    restart: no
+    command: >
+      sh -c "batch_worker_go"
+    volumes:
+      - ./batch_worker_go:/usr/bin/batch_worker_go
+    networks:
+      - app-network

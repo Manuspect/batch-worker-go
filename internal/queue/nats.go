@@ -180,7 +180,7 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 	}
 
 	bodyReader := bytes.NewReader(body)
-	url := os.Getenv("URL")
+	url := os.Getenv("URL_PROCESSING_SERVICE")
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 	if err != nil {
 		return err
@@ -203,9 +203,3 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 
 	return nil
 }
-
-// 0. Получить где бетч из очереди
-// 1. Получить архив (бэтч) из S3
-// 2. Достать из архива видео файл и файл мета-данных
-// 3. Преобразовать видео-файл в картинки и сохранить картинки в S3
-// 4. Отправить данные из мета-данных (файла) в сервис обработки

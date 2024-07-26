@@ -1,0 +1,22 @@
+version: '3.5'
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  batch-worker-go:
+    build: ./
+    container_name: batch-worker-go
+    restart: unless-stopped
+    environment:
+      - URL_PROCESSING_SERVICE=${URL_PROCESSING_SERVICE}
+      - NATS_HOST=${NATS_HOST}
+      - NATS_PORT=${NATS_PORT}
+      - MINIO_HOST=${MINIO_HOST}
+      - MINIO_BUCKET=${MINIO_BUCKET}
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASS=${MINIO_PASS}
+      - MINIO_SERVER_PORT=${MINIO_SERVER_PORT}
+    networks:
+      - app-network

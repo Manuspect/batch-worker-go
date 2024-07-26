@@ -42,6 +42,7 @@ func GetWebmCsv(pathGzipStream string) ([]FileCsv, error) {
 			if err := os.Mkdir(header.Name, 0755); err != nil {
 				return nil, err
 			}
+
 		case tar.TypeReg:
 			outFile, err := os.Create(header.Name)
 			if err != nil {
@@ -53,10 +54,10 @@ func GetWebmCsv(pathGzipStream string) ([]FileCsv, error) {
 			outFile.Close()
 
 		default:
-			log.Printf("ExtractTarGz: uknown type: %v in %s", header.Typeflag, header.Name)
+			log.Printf("ExtractTarGz: uknown type: %s in %s", string(header.Typeflag), header.Name)
 		}
 
-		arr := strings.Split(fmt.Sprintf("%v", header.Name), ".")
+		arr := strings.Split(header.Name, ".")
 
 		if len(arr) > 1 && arr[1] == "webm" {
 			HeaderWebm = header.Name
@@ -73,7 +74,7 @@ func GetWebmCsv(pathGzipStream string) ([]FileCsv, error) {
 		return nil, err
 	}
 
-	ar := strings.Split(fmt.Sprintf("%v", HeaderWebm), "/")
+	ar := strings.Split(HeaderWebm, "/")
 	saveWebmToFrames(frames, HeaderWebm)
 
 	events, err := GetEvetsCsv(PathCsv)

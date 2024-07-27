@@ -85,8 +85,6 @@ type q_msg struct {
 func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstream.Msg) {
 	return func(msg jetstream.Msg) {
 
-		msg.Ack()
-
 		var q *q_msg
 		json.Unmarshal(msg.Data(), &q)
 
@@ -119,7 +117,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			return
 		}
 
-		err = sendJpegCsvFiles(m, objectName, bucketName, events)
+		err = sendJpegCsvFiles(m, objectName, bucketName, folderName, events)
 		if err != nil {
 			fmt.Println("sendJpegCsvFiles err:", err)
 			return
@@ -130,7 +128,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			log.Println(err)
 		}
 
-		err = os.RemoveAll(objectName)
+		err = os.RemoveAll(folderName)
 		if err != nil {
 			log.Println(err)
 		}
@@ -139,7 +137,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 	}
 }
 
-func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []batch.FileCsv) error {
+func sendJpegCsvFiles(m *minio.Client, objectName, bucketName, folderName string, events []batch.FileCsv) error {
 	ctx := context.Background()
 	contentType := "application/octet-image"
 
@@ -149,7 +147,7 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 	event := events[j]
 
 	filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
-	filePathJpeg := "frames/" + strconv.Itoa(j) + ".jpeg"
+	filePathJpeg := "./" + folderName + "/" + "frames/" + strconv.Itoa(j) + ".jpeg"
 
 	_, err := m.FPutObject(
 		ctx,

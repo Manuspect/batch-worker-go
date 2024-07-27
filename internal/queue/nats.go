@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
@@ -87,10 +88,11 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 		var q *q_msg
 		json.Unmarshal(msg.Data(), &q)
 
+		folderName := (uuid.New()).String()
 		ctx := context.Background()
 		bucketName := q.BucketName
 		objectName := q.ObjectName
-		filename := fmt.Sprintf("./%s", objectName)
+		filename := "./" + folderName + "/" + objectName
 
 		err := m.FGetObject(
 			ctx,
@@ -115,7 +117,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			return
 		}
 
-		err = sendJpegCsvFiles(m, objectName, bucketName, events)
+		err = sendJpegCsvFiles(m, objectName, bucketName, folderName, events)
 		if err != nil {
 			fmt.Println("sendJpegCsvFiles err:", err)
 			return
@@ -126,7 +128,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			log.Println(err)
 		}
 
-		err = os.RemoveAll(objectName)
+		err = os.RemoveAll(folderName)
 		if err != nil {
 			log.Println(err)
 		}
@@ -135,17 +137,17 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 	}
 }
 
-func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []batch.FileCsv) error {
+func sendJpegCsvFiles(m *minio.Client, objectName, bucketName, folderName string, events []batch.FileCsv) error {
 	ctx := context.Background()
 	contentType := "application/octet-image"
 
 	arr := strings.Split(objectName, "-")
 	var filePath string
-	j := 3
+	j := 5
 	event := events[j]
 
 	filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
-	filePathJpeg := "frames/" + strconv.Itoa(j) + ".jpeg"
+	filePathJpeg := "./" + folderName + "/" + "frames/" + strconv.Itoa(j) + ".jpeg"
 
 	_, err := m.FPutObject(
 		ctx,
@@ -174,16 +176,30 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 		FilePath:      filePath,
 	}
 
-	body, err := json.Marshal(fileInfo)
+	resp, err := sendJson(fileInfo)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
-	bodyReader := bytes.NewReader(body)
+	fmt.Println(string(resp))
+
+	return nil
+}
+
+func sendJson(fileInfo batch.Info) ([]byte, error) {
+
+	data, err := json.Marshal(fileInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	bodyReader := bytes.NewReader(data)
 	url := os.Getenv("URL_PROCESSING_SERVICE")
+
 	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -193,13 +209,14 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName string, events []b
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = io.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	defer resp.Body.Close()
 
-	return nil
+	return b, nil
 }

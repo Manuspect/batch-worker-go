@@ -82,7 +82,7 @@ type q_msg struct {
 	BucketName string `json:"bucketName"`
 }
 
-func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstream.Msg) {
+func CreateConsumerHandler(m *minio.Client, js jetstream.JetStream) func(jetstream.Msg) {
 	return func(msg jetstream.Msg) {
 
 		var q *q_msg
@@ -117,7 +117,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 			return
 		}
 
-		err = sendJpegCsvFiles(m, objectName, bucketName, folderName, events)
+		err = sendJpegCsvFiles(m, js, objectName, bucketName, folderName, events)
 		if err != nil {
 			fmt.Println("sendJpegCsvFiles err:", err)
 			return
@@ -137,7 +137,7 @@ func CreateConsumerHandler(m *minio.Client, fc jetstream.Consumer) func(jetstrea
 	}
 }
 
-func sendJpegCsvFiles(m *minio.Client, objectName, bucketName, folderName string, events []batch.FileCsv) error {
+func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucketName, folderName string, events []batch.FileCsv) error {
 	ctx := context.Background()
 	contentType := "application/octet-image"
 
@@ -183,6 +183,22 @@ func sendJpegCsvFiles(m *minio.Client, objectName, bucketName, folderName string
 	}
 
 	fmt.Println(string(resp))
+	var respInfo batch.Info
+	err = json.Unmarshal(resp, &respInfo)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	fileName := respInfo.FilePath
+
+	js.Publish(
+		ctx,
+		"FILE.FILE",
+		[]byte(fmt.Sprintf(
+			"{\"fileName\": \"%s\"}",
+			fileName)),
+	)
 
 	return nil
 }

@@ -28,13 +28,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fc, err := nats.CreateFileComsumer(jetStream)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	cc, err := bc.Consume(
-		nats.CreateConsumerHandler(minio_client, fc),
+		nats.CreateConsumerHandler(minio_client, jetStream),
 		jetstream.ConsumeErrHandler(
 			func(consumeCtx jetstream.ConsumeContext, err error) {
 				fmt.Println(err)

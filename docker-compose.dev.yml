@@ -5,6 +5,7 @@ networks:
 
 services:
   collector-go:
+    container_name: batch-worker-go
     env_file:
       - ../.env
     image: debian:12-slim

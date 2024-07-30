@@ -1,6 +1,6 @@
 networks:
   app-network:
-    name: workspace_default
+    name: manuspect-net
     external: true
 
 services:
@@ -12,6 +12,6 @@ services:
     command: >
       sh -c "batch_worker_go"
     volumes:
-      - ./batch_worker_go:/usr/bin/batch_worker_go
+      - ./bin/batch_worker_go:/usr/bin/batch_worker_go
     networks:
       - app-network

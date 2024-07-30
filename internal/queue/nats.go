@@ -196,7 +196,7 @@ func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucke
 		ctx,
 		"FILE.FILE",
 		[]byte(fmt.Sprintf(
-			"{\"fileName\": \"%s\"}",
+			"{\"logId\": \"%s\"}",
 			fileName)),
 	)
 

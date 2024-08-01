@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func GetWebmCsv(pathStream string) ([]FileCsv, error) {
+func GetWebmJson(pathStream string) ([]FileJson, error) {
 
 	gzipStream, err := os.Open(pathStream)
 	if err != nil {
@@ -27,7 +27,7 @@ func GetWebmCsv(pathStream string) ([]FileCsv, error) {
 	arrCat := strings.Split(pathStream, "/")
 
 	HeaderWebm := ""
-	PathCsv := ""
+	PathJson := ""
 	for {
 		header, err := tarReader.Next()
 
@@ -56,7 +56,7 @@ func GetWebmCsv(pathStream string) ([]FileCsv, error) {
 			outFile.Close()
 
 		default:
-			log.Printf("GetWebmCsv: uknown type: %s in %s", string(header.Typeflag), arrCat[1]+"/"+header.Name)
+			log.Printf("GetWebmJson: uknown type: %s in %s", string(header.Typeflag), arrCat[1]+"/"+header.Name)
 		}
 
 		arr := strings.Split(header.Name, ".")
@@ -65,8 +65,8 @@ func GetWebmCsv(pathStream string) ([]FileCsv, error) {
 			HeaderWebm = arrCat[1] + "/" + header.Name
 		}
 
-		if len(arr) > 1 && arr[1] == "csv" {
-			PathCsv = arrCat[1] + "/" + header.Name
+		if len(arr) > 1 && arr[1] == "json" {
+			PathJson = arrCat[1] + "/" + header.Name
 		}
 	}
 
@@ -78,7 +78,7 @@ func GetWebmCsv(pathStream string) ([]FileCsv, error) {
 
 	saveWebmToFrames(frames, HeaderWebm)
 
-	events, err := GetEvetsCsv(PathCsv)
+	events, err := GetEventsJson(PathJson)
 	if err != nil {
 		return nil, err
 	}

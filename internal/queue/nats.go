@@ -111,15 +111,15 @@ func CreateConsumerHandler(m *minio.Client, js jetstream.JetStream) func(jetstre
 			log.Println(err)
 		}
 
-		events, err := batch.GetWebmCsv(filename)
+		events, err := batch.GetWebmJson(filename)
 		if err != nil {
 			fmt.Println("GetWebmCsv err:", err)
 			return
 		}
 
-		err = sendJpegCsvFiles(m, js, objectName, bucketName, folderName, events)
+		err = sendJpegJsonFiles(m, js, objectName, bucketName, folderName, events)
 		if err != nil {
-			fmt.Println("sendJpegCsvFiles err:", err)
+			fmt.Println("sendJpegJsonFiles err:", err)
 			return
 		}
 
@@ -137,13 +137,13 @@ func CreateConsumerHandler(m *minio.Client, js jetstream.JetStream) func(jetstre
 	}
 }
 
-func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucketName, folderName string, events []batch.FileCsv) error {
+func sendJpegJsonFiles(m *minio.Client, js jetstream.JetStream, objectName, bucketName, folderName string, events []batch.FileJson) error {
 	ctx := context.Background()
 	contentType := "application/octet-image"
 
 	arr := strings.Split(objectName, "-")
 	var filePath string
-	j := 5
+	j := 1
 	event := events[j]
 
 	filePath = arr[0] + "-" + arr[1] + "-" + event.Timestamp + "-" + strconv.Itoa(j) + ".jpeg" // 2-3-44-3.jpeg
@@ -160,20 +160,24 @@ func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucke
 		return err
 	}
 
-	fileInfo := batch.Info{
-		Timestamp:     event.Timestamp,
-		Process_path:  event.Process_path,
-		Title:         event.Title,
-		Class_name:    event.Class_name,
-		Window_left:   event.Window_left,
-		Window_top:    event.Window_top,
-		Window_right:  event.Window_right,
-		Window_bottom: event.Window_bottom,
-		Event:         event.Event,
-		Mouse_x_pos:   event.Mouse_x_pos,
-		Mouse_y_pos:   event.Mouse_y_pos,
-		Modifiers:     event.Modifiers,
-		FilePath:      filePath,
+	fileInfo := batch.InfoJson{
+		Id:               event.Id,
+		BatchId:          event.BatchId,
+		UserId:           event.UserId,
+		LogRecordCounter: event.LogRecordCounter,
+		Timestamp:        event.Timestamp,
+		WindowLeft:       event.WindowLeft,
+		WindowTop:        event.WindowTop,
+		WindowRight:      event.WindowRight,
+		WindowBottom:     event.WindowBottom,
+		MouseX:           event.MouseX,
+		MouseY:           event.MouseY,
+		ProcessPath:      event.ProcessPath,
+		Title:            event.Title,
+		ClassName:        event.ClassName,
+		Event:            event.Event,
+		Modifiers:        event.Modifiers,
+		FilePath:         filePath,
 	}
 
 	resp, err := sendJson(fileInfo)
@@ -183,7 +187,7 @@ func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucke
 	}
 
 	fmt.Println(string(resp))
-	var respInfo batch.Info
+	var respInfo batch.InfoJson
 	err = json.Unmarshal(resp, &respInfo)
 	if err != nil {
 		log.Println(err)
@@ -203,7 +207,7 @@ func sendJpegCsvFiles(m *minio.Client, js jetstream.JetStream, objectName, bucke
 	return nil
 }
 
-func sendJson(fileInfo batch.Info) ([]byte, error) {
+func sendJson(fileInfo batch.InfoJson) ([]byte, error) {
 
 	data, err := json.Marshal(fileInfo)
 	if err != nil {
